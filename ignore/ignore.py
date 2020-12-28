@@ -1,23 +1,35 @@
 import argparse
 import os
-from ignore.make_request import make_request
-
-URL = "https://www.toptal.com/developers/gitignore/api/list?format=json"
+from ignore.utils import get_file
 
 
 def main() -> None:
 
     parser = argparse.ArgumentParser("IGNORE: A .gitignore generator tool.")
 
-    parser.add_argument("-n", "--name", type=str, help="Language name")
     parser.add_argument(
-        "-p", "--path", type=str, help="Output path", default="./"
+        "-n",
+        "--names",
+        required=True,
+        nargs="+",
+        help=(
+            "Language name(s); pass as many names as necessary."
+            # " Use ALL if all possible gitignore files are required"
+        ),
     )
-    resp = make_request()
+    parser.add_argument(
+        "-p",
+        "--path",
+        required=False,
+        type=str,
+        help="Output path; where to save the '.gitignore' file",
+        default="./",
+    )
     args = parser.parse_args()
 
-    with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
-        f.write(resp.json()["python"]["contents"])
+    resp = get_file(args.names)
+    with open(f"{os.path.join(args.path, 'gitignore')}", "w") as f:
+        f.write(resp.content)
 
 
 if __name__ == "__main__":
