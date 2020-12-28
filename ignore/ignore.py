@@ -1,7 +1,6 @@
-import requests
 import argparse
-import sys
 import os
+from ignore.make_request import make_request
 
 URL = "https://www.toptal.com/developers/gitignore/api/list?format=json"
 
@@ -14,12 +13,8 @@ def main() -> None:
     parser.add_argument(
         "-p", "--path", type=str, help="Output path", default="./"
     )
-
+    resp = make_request()
     args = parser.parse_args()
-
-    resp = requests.get(
-        "https://www.toptal.com/developers/gitignore/api/list?format=json"
-    )
 
     with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
         f.write(resp.json()["python"]["contents"])
