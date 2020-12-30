@@ -37,13 +37,13 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: actions/upload-artifact@v2
       if: github.ref == 'refs/heads/develop'
       with:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
         repository_url: https://test.pypi.org/legacy/
     - name: Publish distribution 📦 to PyPI
       if: github.ref == 'refs/heads/main'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: actions/upload-artifact@v2
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
