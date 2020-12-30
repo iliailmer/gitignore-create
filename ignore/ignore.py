@@ -12,10 +12,7 @@ def main() -> None:
         "--names",
         required=True,
         nargs="+",
-        help=(
-            "Language name(s); pass as many names as necessary."
-            # " Use ALL if all possible gitignore files are required"
-        ),
+        help=("Language name(s); pass as many names as necessary."),
     )
     parser.add_argument(
         "-p",
@@ -28,8 +25,9 @@ def main() -> None:
     args = parser.parse_args()
 
     resp = get_file(args.names)
-    with open(f"{os.path.join(args.path, 'gitignore')}", "w") as f:
-        f.write(resp.content)
+    with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
+        f.write(resp.content.decode("utf-8"))
+        print("Success!")
 
 
 if __name__ == "__main__":
