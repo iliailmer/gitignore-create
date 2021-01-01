@@ -2,6 +2,8 @@ import argparse
 import os
 from ignore.utils import get_file
 
+# TODO: requests as a requirement
+
 
 def main() -> None:
 
@@ -26,8 +28,12 @@ def main() -> None:
 
     resp = get_file(args.names)
     with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
-        f.write(resp.content.decode("utf-8"))
-        print("Success!")
+        content = resp.content.decode("utf-8")
+        if "error" in content.lower():
+            print("Something went wrong, language not found!")
+        else:
+            f.write(content)
+            print("Success!")
 
 
 if __name__ == "__main__":

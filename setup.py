@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="gitignore-create",
-    version="0.0.1a",
+    version="0.0.1b",
     description="A CLI tool to generate gitignore files",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -16,6 +16,7 @@ setup(
     author_email="i.ilmer@icloud.com",
     license="GNU GENERAL PUBLIC LICENSE",
     packages=find_packages(),
+    install_requires=["requests"],
     entry_points={"console_scripts": ["gitignore-create=ignore:main"]},
     # install_requires=REQUIREMENTS,
     keywords="gitignore git",

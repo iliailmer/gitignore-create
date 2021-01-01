@@ -140,3 +140,4 @@ dmypy.json
 .prof
 
 files.txt
+.vscode
