@@ -42,9 +42,14 @@ jobs:
       with:
         name: python-package-distributions
         path: dist/
+    - name: Pypi upload
+      uses: ortega2247/pypi-upload-action@v1
+      with:
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
     - name: Publish distribution 📦 to PyPI
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v2
+      uses: ortega2247/pypi-upload-action@v1
       with:
-        name: python-package-distributions
-        path: dist/
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
