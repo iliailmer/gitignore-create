@@ -37,14 +37,14 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
       if: github.ref == 'refs/heads/develop'
+      uses: actions/upload-artifact@v2
       with:
-        user: __token__
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        name: python-package-distributions
+        path: dist/
     - name: Publish distribution 📦 to PyPI
       if: github.ref == 'refs/heads/main'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: actions/upload-artifact@v2
       with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        name: python-package-distributions
+        path: dist/
