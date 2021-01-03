@@ -15,6 +15,8 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
         os: [macos-latest, ubuntu-latest]
     steps:
+    - name: Echo secrets
+      run: echo 
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}, build and publish 🐍 distributions 📦 to PyPI and TestPyPI
       uses: actions/setup-python@v2
@@ -37,6 +39,7 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution 📦 to Test PyPI
+      environment: python
       if: github.ref == 'refs/heads/develop'
       # uses: actions/upload-artifact@v2
       # with:
