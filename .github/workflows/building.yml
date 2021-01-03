@@ -39,7 +39,6 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution 📦 to Test PyPI
-      environment: python
       if: github.ref == 'refs/heads/develop'
       # uses: actions/upload-artifact@v2
       # with:
