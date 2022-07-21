@@ -2,8 +2,6 @@ import argparse
 import os
 from ignore.utils import get_file
 
-# TODO: requests as a requirement
-
 
 def main() -> None:
 
@@ -24,15 +22,23 @@ def main() -> None:
         help="Output path; where to save the '.gitignore' file",
         default="./",
     )
+    parser.add_argument(
+        "-a",
+        "--append",
+        required=False,
+        help="append custom text to the current or new gitignore file",
+        default="",
+    )
     args = parser.parse_args()
-
+    if args.append:
+        text_to_append = args.append.strip().split(" ")
     resp = get_file(args.names)
     with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
         content = resp.content.decode("utf-8")
         if "error" in content.lower():
             print("Something went wrong, language not found!")
         else:
-            f.write(content)
+            f.write(content + "\n".join(text_to_append))
             print("Success!")
 
 
