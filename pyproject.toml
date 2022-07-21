@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "gitignore-create"
+version = "0.1.0"
+description = "Command line tool for quick generation of .gitignore files"
+authors = ["Ilia <i.ilmer@icloud.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+requests = "^2.28.1"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+isort = "^5.10.1"
+flake8 = "^4.0.1"
+mypy = "^0.971"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
