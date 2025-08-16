@@ -4,7 +4,6 @@ from ignore.utils import get_file
 
 
 def main() -> None:
-
     parser = argparse.ArgumentParser("IGNORE: A .gitignore generator tool.")
 
     parser.add_argument(
@@ -12,7 +11,7 @@ def main() -> None:
         "--names",
         required=True,
         nargs="+",
-        help=("Language name(s); pass as many names as necessary."),
+        help="Language name(s); pass as many names as necessary.",
     )
     parser.add_argument(
         "-p",
@@ -26,19 +25,19 @@ def main() -> None:
         "-a",
         "--append",
         required=False,
-        help="append custom text to the current or new gitignore file",
+        help="Append custom text to the current or new gitignore file",
         default="",
     )
     args = parser.parse_args()
-    if args.append:
-        text_to_append = args.append.strip().split(" ")
     resp = get_file(args.names)
     with open(f"{os.path.join(args.path, '.gitignore')}", "w") as f:
         content = resp.content.decode("utf-8")
         if "error" in content.lower():
             print("Something went wrong, language not found!")
         else:
-            f.write(content + "\n".join(text_to_append))
+            if args.append:
+                text_to_append = args.append.strip().split(" ")
+                f.write(content + "\n".join(text_to_append))
             print("Success!")
 
 
