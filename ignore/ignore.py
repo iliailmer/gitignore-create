@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from ignore.utils import get_file, get_template_list, search_templates
+from ignore.utils import get_file, get_template_list, search_templates, validate_gitignore_response
 
 
 def main() -> None:
@@ -53,28 +53,34 @@ def main() -> None:
     # Handle --list
     if args.list:
         try:
+            # get_template_list() returns sorted results
             templates = get_template_list()
-            templates.sort()
             for template in templates:
                 print(template)
             return
-        except Exception as e:
+        except RuntimeError as e:
             print(f"Error fetching template list: {e}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected error: {e}", file=sys.stderr)
             sys.exit(1)
 
     # Handle --search
     if args.search:
         try:
+            # search_templates() returns sorted results
             results = search_templates(args.search)
-            results.sort()
             if results:
                 for template in results:
                     print(template)
             else:
                 print(f"No templates found matching '{args.search}'")
             return
-        except Exception as e:
+        except RuntimeError as e:
             print(f"Error searching templates: {e}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected error: {e}", file=sys.stderr)
             sys.exit(1)
 
     # If no names provided and not using --list or --search, launch TUI
@@ -86,11 +92,10 @@ def main() -> None:
 
     # Fetch template content
     try:
-        resp = get_file(args.names)
-        content = resp.content.decode("utf-8")
+        content = get_file(args.names)
 
         # Check for errors in response
-        if "error" in content.lower():
+        if not validate_gitignore_response(content):
             print("Something went wrong, language not found!", file=sys.stderr)
             sys.exit(1)
 
@@ -98,8 +103,8 @@ def main() -> None:
         if args.preview:
             print(content)
             if args.append:
-                text_to_append = args.append.strip().split(" ")
-                print("\n".join(text_to_append))
+                # Treat append text as-is, preserving any formatting
+                print("\n" + args.append.strip())
             return
 
         # Write to file
@@ -120,8 +125,8 @@ def main() -> None:
                     if not existing_content.endswith("\n"):
                         f.write("\n")
                 f.write(content)
-                text_to_append = args.append.strip().split(" ")
-                f.write("\n" + "\n".join(text_to_append))
+                # Treat append text as-is, preserving any formatting
+                f.write("\n" + args.append.strip())
         else:
             # Normal write mode
             with open(gitignore_path, "w") as f:
@@ -129,8 +134,11 @@ def main() -> None:
 
         print("Success!")
 
-    except Exception as e:
+    except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

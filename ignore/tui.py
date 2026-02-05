@@ -1,37 +1,16 @@
 import os
-from typing import List
+from typing import Dict, List
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Button, Footer, Header, Input, Label, ListView, ListItem, Static
-from textual.binding import Binding
+from textual.widgets import Button, Footer, Header, Input, Label, OptionList, Static
+from textual.widgets.option_list import Option
 
-from ignore.utils import get_file, get_template_list
-
-
-class TemplateListItem(ListItem):
-    """A list item that can be selected/deselected"""
-
-    def __init__(self, template_name: str, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.template_name = template_name
-        self.is_selected = False
-
-    def compose(self) -> ComposeResult:
-        yield Label(f"[ ] {self.template_name}")
-
-    def toggle_selection(self):
-        """Toggle selection state"""
-        self.is_selected = not self.is_selected
-        label = self.query_one(Label)
-        if self.is_selected:
-            label.update(f"[x] {self.template_name}")
-        else:
-            label.update(f"[ ] {self.template_name}")
+from ignore.utils import get_file, get_template_list, validate_gitignore_response
 
 
 class GitignoreTUI(App):
-    """A Textual TUI for gitignore-create"""
+    """A simplified TUI for gitignore-create"""
 
     CSS = """
     Screen {
@@ -49,30 +28,26 @@ class GitignoreTUI(App):
 
     #left-panel {
         width: 40%;
-        border: solid $primary;
         padding: 1;
     }
 
     #right-panel {
         width: 60%;
-        border: solid $primary;
         padding: 1;
-        overflow-y: scroll;
     }
 
     #template-list {
         height: 100%;
-        border: solid $accent;
+        border: solid $primary;
     }
 
     #preview-box {
         height: 100%;
-        border: solid $accent;
-        overflow-y: scroll;
+        border: solid $primary;
     }
 
     #output-container {
-        height: 5;
+        height: 3;
         padding: 0 1;
     }
 
@@ -88,9 +63,10 @@ class GitignoreTUI(App):
     """
 
     BINDINGS = [
-        Binding("q", "quit", "Quit"),
-        Binding("escape", "quit", "Quit"),
+        ("q", "quit", "Quit"),
+        ("escape", "quit", "Quit"),
         ("ctrl+c", "quit", "Quit"),
+        ("space", "toggle", "Toggle"),
     ]
 
     def __init__(self):
@@ -98,62 +74,61 @@ class GitignoreTUI(App):
         self.all_templates: List[str] = []
         self.filtered_templates: List[str] = []
         self.selected_templates: List[str] = []
+        self.content_cache: Dict[str, str] = {}  # Cache for fetched template content
 
     def compose(self) -> ComposeResult:
         yield Header()
 
         # Search box
         with Container(id="search-container"):
-            yield Label("Search templates:")
-            yield Input(placeholder="Type to search...", id="search-input")
+            yield Input(placeholder="Search templates...", id="search-input")
 
         # Main container with left (list) and right (preview) panels
         with Horizontal(id="main-container"):
             with Vertical(id="left-panel"):
-                yield Label("Available Templates (click to select):")
-                yield ListView(id="template-list")
+                yield Label("Templates (Space to select, Enter to preview):")
+                yield OptionList(id="template-list")
 
             with Vertical(id="right-panel"):
                 yield Label("Preview:")
-                yield Static("Select templates to preview", id="preview-box")
+                yield Static("Select a template and press Enter to preview", id="preview-box")
 
         # Output path input
         with Container(id="output-container"):
-            yield Label("Output path:")
-            yield Input(value="./", placeholder="./", id="output-input")
+            yield Input(value="./", placeholder="Output path", id="output-input")
 
         # Buttons
         with Horizontal(id="button-container"):
             yield Button("Generate", variant="primary", id="generate-btn")
-            yield Button("Cancel", variant="error", id="cancel-btn")
+            yield Button("Cancel", id="cancel-btn")
 
         yield Footer()
 
     async def on_mount(self) -> None:
         """Load templates when app starts"""
-        self.title = "gitignore-create TUI"
+        self.title = "gitignore-create"
 
         # Fetch templates
         try:
+            # get_template_list() now returns sorted results
             self.all_templates = get_template_list()
-            self.all_templates.sort()
             self.filtered_templates = self.all_templates.copy()
             await self.populate_list()
-        except Exception as e:
+        except RuntimeError as e:
             preview = self.query_one("#preview-box", Static)
             preview.update(f"Error loading templates: {e}")
+        except Exception as e:
+            preview = self.query_one("#preview-box", Static)
+            preview.update(f"Unexpected error loading templates: {e}")
 
     async def populate_list(self):
         """Populate the template list"""
-        list_view = self.query_one("#template-list", ListView)
-        await list_view.clear()
+        option_list = self.query_one("#template-list", OptionList)
+        option_list.clear_options()
 
         for template in self.filtered_templates:
-            item = TemplateListItem(template)
-            # Restore selection state if it was previously selected
-            if template in self.selected_templates:
-                item.toggle_selection()
-            await list_view.append(item)
+            prefix = "[x] " if template in self.selected_templates else "[ ] "
+            option_list.add_option(Option(f"{prefix}{template}", id=template))
 
     async def on_input_changed(self, event: Input.Changed) -> None:
         """Handle search input changes"""
@@ -167,41 +142,53 @@ class GitignoreTUI(App):
                 self.filtered_templates = self.all_templates.copy()
             await self.populate_list()
 
-    async def on_list_view_selected(self, event: ListView.Selected) -> None:
-        """Handle template selection"""
-        if isinstance(event.item, TemplateListItem):
-            event.item.toggle_selection()
+    async def action_toggle(self) -> None:
+        """Toggle selection of highlighted template"""
+        option_list = self.query_one("#template-list", OptionList)
+        highlighted = option_list.highlighted
 
-            # Update selected templates list
-            if event.item.is_selected:
-                if event.item.template_name not in self.selected_templates:
-                    self.selected_templates.append(event.item.template_name)
+        if highlighted is not None:
+            template = self.filtered_templates[highlighted]
+
+            if template in self.selected_templates:
+                self.selected_templates.remove(template)
             else:
-                if event.item.template_name in self.selected_templates:
-                    self.selected_templates.remove(event.item.template_name)
+                self.selected_templates.append(template)
 
-            # Update preview
-            await self.update_preview()
+            await self.populate_list()
+            option_list.highlighted = highlighted
 
-    async def update_preview(self):
-        """Fetch and display preview of selected templates"""
+    async def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        """Handle template selection - show preview"""
+        template = event.option.id
+        if template:
+            await self.show_preview([template])
+
+    async def show_preview(self, templates: List[str]):
+        """Fetch and display preview of templates"""
         preview = self.query_one("#preview-box", Static)
 
-        if not self.selected_templates:
-            preview.update("Select templates to preview")
-            return
+        # Create cache key from sorted template list
+        cache_key = ','.join(sorted(templates))
 
         try:
-            preview.update("Loading preview...")
-            resp = get_file(self.selected_templates)
-            content = resp.content.decode("utf-8")
+            # Check cache first
+            if cache_key in self.content_cache:
+                content = self.content_cache[cache_key]
+            else:
+                preview.update("Loading preview...")
+                content = get_file(templates)
+                # Cache the result
+                self.content_cache[cache_key] = content
 
-            if "error" in content.lower():
-                preview.update(f"Error: Template not found")
+            if not validate_gitignore_response(content):
+                preview.update("Error: Template not found")
             else:
                 preview.update(content)
+        except RuntimeError as e:
+            preview.update(f"Error: {e}")
         except Exception as e:
-            preview.update(f"Error loading preview: {e}")
+            preview.update(f"Unexpected error: {e}")
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses"""
@@ -214,18 +201,25 @@ class GitignoreTUI(App):
         """Generate .gitignore file"""
         if not self.selected_templates:
             preview = self.query_one("#preview-box", Static)
-            preview.update("Error: Please select at least one template")
+            preview.update("Error: Please select at least one template (use Space)")
             return
 
         output_input = self.query_one("#output-input", Input)
         output_path = output_input.value or "./"
+        preview = self.query_one("#preview-box", Static)
+
+        # Create cache key from sorted template list
+        cache_key = ','.join(sorted(self.selected_templates))
 
         try:
-            resp = get_file(self.selected_templates)
-            content = resp.content.decode("utf-8")
+            # Check cache first (likely already cached from preview)
+            if cache_key in self.content_cache:
+                content = self.content_cache[cache_key]
+            else:
+                content = get_file(self.selected_templates)
+                self.content_cache[cache_key] = content
 
-            if "error" in content.lower():
-                preview = self.query_one("#preview-box", Static)
+            if not validate_gitignore_response(content):
                 preview.update("Error: Failed to fetch templates")
                 return
 
@@ -233,9 +227,11 @@ class GitignoreTUI(App):
             with open(gitignore_path, "w") as f:
                 f.write(content)
 
-            preview = self.query_one("#preview-box", Static)
-            preview.update(f"Success! File written to {gitignore_path}")
+            preview.update(f"Success! File written to {gitignore_path}\n\nPress q to quit")
 
-        except Exception as e:
-            preview = self.query_one("#preview-box", Static)
+        except RuntimeError as e:
+            preview.update(f"Error: {e}")
+        except OSError as e:
             preview.update(f"Error writing file: {e}")
+        except Exception as e:
+            preview.update(f"Unexpected error: {e}")
