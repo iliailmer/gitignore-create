@@ -5,7 +5,7 @@ description = "Command line tool for quick generation of .gitignore files"
 authors = [{ name = "Ilia Ilmer", email = "contact@iliailmer.com" }]
 requires-python = ">=3.10,<3.11"
 license = "MIT"
-dependencies = ["requests>=2.28.1,<3"]
+dependencies = ["requests>=2.28.1,<3", "textual>=0.50.0"]
 
 [dependency-groups]
 dev = [
@@ -20,6 +20,12 @@ dev = [
 venv = ".venv"
 venvPath = "."
 typeCheckingMode = "standard"
+
+[project.scripts]
+gitignore-create = "ignore.ignore:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ignore"]
 
 [build-system]
 requires = ["hatchling"]
