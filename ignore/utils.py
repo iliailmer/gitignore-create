@@ -79,10 +79,12 @@ def validate_gitignore_response(content: str) -> bool:
     """
     Check if gitignore response is valid or contains an error.
 
+    The API returns errors in the format: "#!! ERROR: template is undefined !!#"
+
     Args:
         content: Response content to validate
 
     Returns:
         True if valid, False if error detected
     """
-    return "error" not in content.lower()
+    return "#!! ERROR:" not in content
